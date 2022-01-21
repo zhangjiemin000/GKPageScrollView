@@ -120,7 +120,7 @@ import UIKit
 
 open class GKPageScrollView: UIView {
     open weak var delegate: GKPageScrollViewDelegate!
-    // 主列表
+    // 主列表, GKPageTableView 只是实现了手势的分流，如果是手势作用于列表中的ScrollView，则不能同时响应，意思应该是各管各的手势
     open var mainTableView: GKPageTableView!
     // 包裹segmentedView和列表容器的view
     open var pageView = UIView()
@@ -207,7 +207,8 @@ open class GKPageScrollView: UIView {
     // 临界点
     var criticalPoint: CGFloat = 0
     var criticalOffset: CGPoint = .zero
-    
+
+
     public init(delegate: GKPageScrollViewDelegate) {
         self.delegate = delegate
         super.init(frame: .zero)
@@ -271,6 +272,7 @@ open class GKPageScrollView: UIView {
     
     // MARK: - Public Methods
     public func refreshHeaderView() {
+        //这里拿到HeaderView，这里的headerView就是主TableView的HeaderView
         let headerView = self.delegate.headerView(in: self)
         self.mainTableView.tableHeaderView = headerView
         self.headerHeight = headerView.frame.size.height
@@ -309,16 +311,18 @@ open class GKPageScrollView: UIView {
         }else {
             self.mainTableView.reloadData()
         }
-        
+        NSLog("reloadData之后，临界点 = \(criticalPoint)", "")
         self.criticalPoint = self.mainTableView.rect(forSection: 0).origin.y - self.ceilPointHeight
         self.criticalOffset = CGPoint(x: 0, y: self.criticalPoint)
     }
     
     public func horizonScrollViewWillBeginScroll() {
+        //如果子TableView不动的时候，主TableView也不能动
         self.mainTableView.isScrollEnabled = false
     }
-    
+
     public func horizonScrollViewDidEndedScroll() {
+        //如果子TableView结束的时候，主TableView才可以动
         self.mainTableView.isScrollEnabled = true
     }
     
@@ -491,6 +495,7 @@ open class GKPageScrollView: UIView {
     
     // MARK: - Private Methods
     fileprivate func configListViewScroll() {
+        //子tableView滚动时的代理事件
         if (self.delegate.listView?(in: self).count) ?? 0 > 0 {
             for (_, value) in (self.delegate.listView?(in: self).enumerated())! {
                 value.listViewDidScroll { (scrollView) in
@@ -500,7 +505,7 @@ open class GKPageScrollView: UIView {
         }
     }
     
-    // 修正mainTableView的位置
+    /// 修正mainTableView的位置，还原主界面的位置 contentOffset
     fileprivate func mainScrollViewOffsetFixed() {
         if self.shouldLazyLoadListView() {
             for listItem in self.validListDict.values {
@@ -521,7 +526,7 @@ open class GKPageScrollView: UIView {
             }
         }
     }
-    
+    /// 子ScrollView的Offset还原
     fileprivate func listScrollViewOffsetFixed() {
         if self.shouldLazyLoadListView() {
             for listItem in self.validListDict.values {
@@ -543,7 +548,8 @@ open class GKPageScrollView: UIView {
             }
         }
     }
-    
+
+    ///当主界面滑动时的更新
     fileprivate func mainTableViewCanScrollUpdate() {
         self.delegate.mainTableViewDidScroll?(self.mainTableView, isMainCanScroll: self.isMainCanScroll)
     }
@@ -561,7 +567,8 @@ open class GKPageScrollView: UIView {
             scrollView.contentOffset = offset
         }
     }
-    
+
+    ///获取当前的PageView
     fileprivate func getPageView() -> UIView {
         let width = self.frame.size.width == 0 ? GKPage_Screen_Width : self.frame.size.width
         var height = self.frame.size.height == 0 ? GKPage_Screen_Height : self.frame.size.height

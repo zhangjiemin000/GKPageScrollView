@@ -112,6 +112,17 @@
     }else {
         [self restoreSystemNavBar];
     }
+    
+    if (self.gk_disableFixNavItemSpace) {
+        [GKConfigure updateConfigure:^(GKNavigationBarConfigure * _Nonnull configure) {
+            configure.gk_disableFixSpace = YES;
+        }];
+    }else {
+        [GKConfigure updateConfigure:^(GKNavigationBarConfigure * _Nonnull configure) {
+            configure.gk_disableFixSpace = configure.disableFixSpace;
+        }];
+    }
+    
     [self gk_viewDidAppear:animated];
 }
 
@@ -133,9 +144,24 @@
 - (void)gk_traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
     if (@available(iOS 13.0, *)) {
         if ([self.traitCollection hasDifferentColorAppearanceComparedToTraitCollection:previousTraitCollection]) {
-            // 重新设置导航栏颜色
-            [self setNavBackgroundColor:self.gk_navBackgroundColor];
-            [self setNavShadowColor:self.gk_navShadowColor];
+            // 重新设置返回按钮
+            if (self.gk_backImage) {
+                [self setBackItemImage:self.gk_backImage];
+            }
+            
+            // 重新设置导航栏背景颜色
+            if (self.gk_navBackgroundImage) {
+                [self setNavBackgroundImage:self.gk_navBackgroundImage];
+            }else {
+                [self setNavBackgroundColor:self.gk_navBackgroundColor];
+            }
+            
+            // 重新设置分割线颜色
+            if (self.gk_navShadowImage) {
+                [self setNavShadowImage:self.gk_navShadowImage];
+            }else {
+                [self setNavShadowColor:self.gk_navShadowColor];
+            }
         }
     }
     [self gk_traitCollectionDidChange:previousTraitCollection];
@@ -239,6 +265,21 @@ static char kAssociatedObjectKey_backImage;
     return objc_getAssociatedObject(self, &kAssociatedObjectKey_backImage);
 }
 
+static char kAssociatedObjectKey_darkBackImage;
+- (void)setGk_darkBackImage:(UIImage *)gk_darkBackImage {
+    objc_setAssociatedObject(self, &kAssociatedObjectKey_darkBackImage, gk_darkBackImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            [self setBackItemImage:gk_darkBackImage];
+        }
+    }
+}
+
+- (UIImage *)gk_darkBackImage {
+    return objc_getAssociatedObject(self, &kAssociatedObjectKey_darkBackImage);
+}
+
 static char kAssociatedObjectKey_blackBackImage;
 - (void)setGk_blackBackImage:(UIImage *)gk_blackBackImage {
     objc_setAssociatedObject(self, &kAssociatedObjectKey_blackBackImage, gk_blackBackImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -290,11 +331,26 @@ static char kAssociatedObjectKey_navBackgroundImage;
 - (void)setGk_navBackgroundImage:(UIImage *)gk_navBackgroundImage {
     objc_setAssociatedObject(self, &kAssociatedObjectKey_navBackgroundImage, gk_navBackgroundImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
-    [self.gk_navigationBar setBackgroundImage:gk_navBackgroundImage forBarMetrics:UIBarMetricsDefault];
+    [self setNavBackgroundImage:gk_navBackgroundImage];
 }
 
 - (UIImage *)gk_navBackgroundImage {
     return objc_getAssociatedObject(self, &kAssociatedObjectKey_navBackgroundImage);
+}
+
+static char kAssociatedObjectKey_darkNavBackgroundImage;
+- (void)setGk_darkNavBackgroundImage:(UIImage *)gk_darkNavBackgroundImage{
+    objc_setAssociatedObject(self, &kAssociatedObjectKey_darkNavBackgroundImage, gk_darkNavBackgroundImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            [self setNavBackgroundImage:gk_darkNavBackgroundImage];
+        }
+    }
+}
+
+- (UIImage *)gk_darkNavBackgroundImage {
+    return objc_getAssociatedObject(self, &kAssociatedObjectKey_darkNavBackgroundImage);
 }
 
 static char kAssociatedObjectKey_navShadowColor;
@@ -312,11 +368,26 @@ static char kAssociatedObjectKey_navShadowImage;
 - (void)setGk_navShadowImage:(UIImage *)gk_navShadowImage {
     objc_setAssociatedObject(self, &kAssociatedObjectKey_navShadowImage, gk_navShadowImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
-    self.gk_navigationBar.shadowImage = gk_navShadowImage;
+    [self setNavShadowImage:gk_navShadowImage];
 }
 
 - (UIImage *)gk_navShadowImage {
     return objc_getAssociatedObject(self, &kAssociatedObjectKey_navShadowImage);
+}
+
+static char kAssociatedObjectKey_darkNavShadowImage;
+- (void)setGk_darkNavShadowImage:(UIImage *)gk_darkNavShadowImage {
+    objc_setAssociatedObject(self, &kAssociatedObjectKey_darkNavShadowImage, gk_darkNavShadowImage, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            [self setNavShadowImage:gk_darkNavShadowImage];
+        }
+    }
+}
+
+- (UIImage *)gk_darkNavShadowImage {
+    return objc_getAssociatedObject(self, &kAssociatedObjectKey_darkNavShadowImage);
 }
 
 static char kAssociatedObjectKey_navLineHidden;
@@ -436,6 +507,7 @@ static char kAssociatedObjectKey_disableFixNavItemSpace;
 - (void)setGk_disableFixNavItemSpace:(BOOL)gk_disableFixNavItemSpace {
     objc_setAssociatedObject(self, &kAssociatedObjectKey_disableFixNavItemSpace, @(gk_disableFixNavItemSpace), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
+    if (GKConfigure.gk_disableFixSpace) return;
     if (gk_disableFixNavItemSpace != GKConfigure.gk_disableFixSpace) {
         [GKConfigure updateConfigure:^(GKNavigationBarConfigure * _Nonnull configure) {
             configure.gk_disableFixSpace = gk_disableFixNavItemSpace;
@@ -570,12 +642,24 @@ static char kAssociatedObjectKey_navItemRightSpace;
         self.gk_navBackgroundImage = GKConfigure.backgroundImage;
     }
     
+    if (self.gk_darkNavShadowImage == nil) {
+        self.gk_darkNavBackgroundImage = GKConfigure.darkBackgroundImage;
+    }
+    
     if (self.gk_navBackgroundColor == nil && self.gk_navBackgroundImage == nil) {
         self.gk_navBackgroundColor = GKConfigure.backgroundColor;
     }
     
+    if (self.gk_navShadowImage == nil) {
+        self.gk_navShadowImage = GKConfigure.lineImage;
+    }
+    
+    if (self.gk_darkNavShadowImage == nil) {
+        self.gk_darkNavShadowImage = GKConfigure.darkLineImage;
+    }
+    
     // 设置分割线颜色
-    if (self.gk_navShadowColor == nil && GKConfigure.lineColor) {
+    if (self.gk_navShadowColor == nil && self.gk_navShadowImage == nil) {
         self.gk_navShadowColor = GKConfigure.lineColor;
     }
     
@@ -597,6 +681,10 @@ static char kAssociatedObjectKey_navItemRightSpace;
     // 设置默认返回图片
     if (self.gk_backImage == nil) {
         self.gk_backImage = GKConfigure.backImage;
+    }
+    
+    if (self.gk_darkBackImage == nil) {
+        self.gk_darkBackImage = GKConfigure.darkBackImage;
     }
     
     // 设置默认返回样式
@@ -700,6 +788,12 @@ static char kAssociatedObjectKey_navItemRightSpace;
         return;
     }
     
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            image = self.gk_darkBackImage;
+        }
+    }
+    
     if (!image) {
         if (self.gk_backStyle != GKNavigationBarBackStyleNone) {
             image = (self.gk_backStyle == GKNavigationBarBackStyleBlack) ? self.gk_blackBackImage : self.gk_whiteBackImage;
@@ -716,9 +810,39 @@ static char kAssociatedObjectKey_navItemRightSpace;
     self.gk_navLeftBarButtonItem = [UIBarButtonItem gk_itemWithImage:image target:self action:@selector(backItemClick:)];
 }
 
+- (void)setNavBackgroundImage:(UIImage *)image {
+    if (!image) return;
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            image = self.gk_darkNavBackgroundImage;
+        }
+    }
+    
+    if (!image) {
+        image = self.gk_navBackgroundImage;
+    }
+    if (!image) return;
+    [self.gk_navigationBar setBackgroundImage:image forBarMetrics:UIBarMetricsDefault];
+}
+
 - (void)setNavBackgroundColor:(UIColor *)color {
     if (!color) return;
     [self.gk_navigationBar setBackgroundImage:[UIImage gk_imageWithColor:color] forBarMetrics:UIBarMetricsDefault];
+}
+
+- (void)setNavShadowImage:(UIImage *)image {
+    if (!image) return;
+    if (@available(iOS 12.0, *)) {
+        if (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+            image = self.gk_darkNavShadowImage;
+        }
+    }
+    
+    if (!image) {
+        image = self.gk_navShadowImage;
+    }
+    if (!image) return;
+    self.gk_navigationBar.shadowImage = image;
 }
 
 - (void)setNavShadowColor:(UIColor *)color {
